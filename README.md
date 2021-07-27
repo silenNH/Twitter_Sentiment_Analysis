@@ -43,7 +43,7 @@ access_secret=
 topic=Bitcoin
 ```
 
-Start the applications with the following commands: 
+Start the applications with the following command: 
 ```bash 
 sudo docker-compose up
 ```
@@ -64,10 +64,57 @@ sudo docker-compose up
 
 # Step by Step Explination
 
+## Docker-Compose
+
+The whole application is specified in a docker-compose file and can be started with one line of code.
+
 ## TweetProducer
 
+TweetProducer streams tweets from the Twitter-API with the library tweepy to a Kafka topic with library pykafka. 
+Tweepy filters the tweets with the following two criterias: 
+* Lenguage: English
+* Topic: The Topic sppecified in the config.ini file ( in our case "Bitcoin")
 
-Library: 
+```bash
+#Filter to the search word (e.g. Bitcoin) and sorting for english messages
+	twitter_stream.filter(languages=['en'], track=[word])
+```
+
+With simple JSON Operations the most important information are preselected to be streamed to a Kafka Topic. The text of the stream is shown in the console:
+
+```bash
+json_data = json.loads(data)
+			send_data = '{}'
+			json_send_data = json.loads(send_data)			
+			json_send_data['text'] = json_data['text']
+			json_send_data['created_at']= json_data['created_at']
+			json_send_data_user=json_data['user']
+			json_send_data["id"]=json_send_data_user["id"]
+			json_send_data["followers_count"]=json_send_data_user["followers_count"]
+			print(json_send_data['text'], "___________END_____________")
+			self.producer.produce(bytes(json.dumps(json_send_data),'ascii'))
+```
+
+The TweetProducer runs in a normal python container as a microservice. The image is build in during the docker-compose process 
+
+
+## Kafk Zookeeper & Broker
+The Kafka Zookeeper and Broker are the backbone of this big data application. Both application are running in a separated container. 
+Kafka Broker works as a publish subscriber system. Data can be ingested to a specified topic and from this topic other application can consume the data. 
+
+
+## Spark Structures Streaming 
+Sark is a 
+
+
+## Limitations: 
+* One Kafka-broker and one Spark-container are applied to cope with limited computer resources (easy to extend to a distributed system). InfluxDB in distributed mode is not for free. 
+* Just text sentiment analysis is applied. Pictures and emojis are not considered (Kuma A., 2019)
+* Twitter data can be biased and not representative 
+* Kafka, Spark and InfluxDB are not secured with SSL in this project. Deployment in production required installation of security protocols like SSL. 
+
+
+## Library: 
 * Bloomenthal, A., 2021, What Determines the Price of 1 Bitcoin?, https://www.investopedia.com/tech/what-determines-value-1-bitcoin/ last access 27.07.2021 at 13:13
 * Kumar, A., Garg, G., 2019, Sentiment analysis of multimodal twitter data, Multimedia Tools and Applications (2019) 78:24103-24119, https://link.springer.com/article/10.1007/s11042-019-7390-1 last access 27.07.2021 at 13:30 
 * Erhard, L. (2021), Zitate von Ludwig Erhard, https://www.zitate.eu/autor/ludwig-erhard-zitate/191304 last access 27.07.2021 at 16:47
