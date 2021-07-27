@@ -13,9 +13,20 @@ The architecture is depicted in the following graph:
 
 
 ## Prerequisits
-*Docker-Compose is installed (if not look [here](https://docs.docker.com/compose/install/ "Docker Homepage))
-*Ubunto Environment (if not install Virtual Box with Ubuntu, look [here]()https://www.heise.de/tipps-tricks/Ubuntu-in-VirtualBox-nutzen-so-klappt-s-4203333.html "Heise")
-*10 GB RAM available
+* Docker-Compose is installed (if not look [here](https://docs.docker.com/compose/install/ "Docker Homepage))
+* Ubunto Environment (if not install Virtual Box with Ubuntu, look [here](https://www.heise.de/tipps-tricks/Ubuntu-in-VirtualBox-nutzen-so-klappt-s-4203333.html "Heise"))
+* 10 GB RAM available
+* Git is installed (if not, look [here]) 
 
 
 ## Getting Starting
+First step is to clone the Repository
+Create a new directory and enter in the a Terminal: 
+git clone "<path to this directory>" 
+
+
+## Library: 
+* Bloomenthal, A., 2021, What Determines the Price of 1 Bitcoin?, https://www.investopedia.com/tech/what-determines-value-1-bitcoin/ last access 27.07.2021 at 13:13
+* Kumar, A., Garg, G., 2019, Sentiment analysis of multimodal twitter data, Multimedia Tools and Applications (2019) 78:24103-24119, https://link.springer.com/article/10.1007/s11042-019-7390-1 last access 27.07.2021 at 13:30 
+* Erhard, L. (2021), Zitate von Ludwig Erhard, https://www.zitate.eu/autor/ludwig-erhard-zitate/191304 last access 27.07.2021 at 16:47
+* Nielsen, F. n.a., A new ANEW: Evaluation of a word list for sentiment analysis in microblogs, DTU Informatics, Technical University of Denmark, Lyngby, Denmark
