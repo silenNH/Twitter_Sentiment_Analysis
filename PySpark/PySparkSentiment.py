@@ -1,3 +1,4 @@
+#import libraries
 from pyspark.sql.session import SparkSession
 from pyspark.sql.functions import *
 import json
@@ -7,9 +8,6 @@ from datetime import datetime
 import pytz
 from afinn import Afinn
 
-#Command line:
-#PYSPARK_PYTHON=python3 spark-3.1.2-bin-hadoop3.2/bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 KafkaConsumer/KafkaConsumerOldV10.py 
-#PYSPARK_PYTHON=python3 /opt/bitnami/spark/bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 /opt/bitnami/spark/work/KafkaConsumerOldV10.py  
 
 #Define the function (UDF) for date extraction
 def getDate(x):
@@ -44,14 +42,15 @@ if __name__ == "__main__":
 
     #Create a SparkSession
     spark=SparkSession.builder.appName("TwitterSentiTest").getOrCreate()
+    
     # Set logger input to ERROR in order to avoid showing all info messages
     spark.sparkContext.setLogLevel("ERROR")
+    
     # Read the stream from Kafka; reading latest offset since the information reated in the early past are important and old data not
     kafka_rawdData_df=spark.readStream.format("kafka").option("kafka.bootstrap.servers", Kafka_Input_Server).option("subscribe", Kafka_Input_Topic).option("startingOffsets", "latest").load()
     
     #Cast the Kafka value in a string
     kafka__rawData_df_string=kafka_rawdData_df.selectExpr("CAST(value AS STRING)")
-    #kafka_df_string=kafka_df.selectExpr("CAST(value AS STRING)", "timestamp")  # if timestamp is needed
 
     #Get the right table schema via conversion (from_json)
     kafka_df=kafka__rawData_df_string.select(from_json(col("value"), schema).alias("data")).select("data.*")
@@ -59,33 +58,33 @@ if __name__ == "__main__":
     #Create column event_data
     #apply UDF getDate
     udf_date=udf(getDate, StringType())
+    
     #Add a column with the event_data 
     tweets_table_withEventDate= kafka_df.withColumn("event_date", to_utc_timestamp(udf_date("created_at"),"UTC"))
 
     #Get Sentiment 
     #apply UDF getSentiment 
     udf_sentiment=udf(getSentiment,DoubleType())
+    
     #Add a column with the Sentiment per Tweet
     tweets_table_withEventDate_withSentiment=tweets_table_withEventDate.withColumn("Sentiment", udf_sentiment("text"))
 
     #Useing Window operator
-    #windowedCounts=tweets_table_withEventDate_withSentiment.withWatermark("event_date", "5 minutes").groupBy(window(col("event_date"), "3 minutes", "20 seconds")).agg(avg(col("Sentiment")).alias("AVG_Sentiment"), count('*'))
-    windowedCounts=tweets_table_withEventDate_withSentiment.withWatermark("event_date", "5 minutes").groupBy(window(col("event_date"), "3 minutes", "20 seconds")).agg(avg(col("Sentiment")).alias("AVG_Sentiment")).select("window.end", "AVG_Sentiment")
+    windowedCounts=tweets_table_withEventDate_withSentiment.withWatermark("event_date", "1 minutes").groupBy(window(col("event_date"), "1 minutes", "20 seconds")).agg(avg(col("Sentiment")).alias("AVG_Sentiment")).select("window.end", "AVG_Sentiment")
+    
+    # Add a UNIX_Timestamp for influxdb processing
     windowedCounts=windowedCounts.withColumn("UNIX_TIMESTAMP", unix_timestamp("end")).select("end","UNIX_TIMESTAMP","AVG_Sentiment")
 
-    #query_date=tweets_table_withEventDate_withSentiment.writeStream.outputMode("append").format("console").start()
-    query_date=windowedCounts.writeStream.outputMode("complete").format("console").start()
+    #Create Console output 
+    query_windowedCounts=windowedCounts.writeStream.outputMode("complete").format("console").start()
+        
     
-    
-    #df_rawData_forKAFKA=tweets_table_withEventDate_withSentiment.withColumn("key", lit(1))
-    
+    # If the raw data is required inclusive sentiment uncomment the following code part as well as the lower command: dfForKafka_rawData_transmitted.awaitTermination()
+    """
+    # Add a constant key to the data stream 
     df_rawData_forKAFKA=tweets_table_withEventDate_withSentiment.withColumn("key", lit(1))
-    """
-    df_rawData_forKAFKA=tweets_table_withEventDate_withSentiment.withColumn("key", lit(1))\
-        .withColumn("value", concat(col("text"), lit(","),\
-        col("followers_count"), lit(","), col("event_date"), lit(","), col("Sentiment")))
-    """
 
+    #Create a stream to Kafka to the topic "SparkrawData"
     dfForKafka_rawData_transmitted= df_rawData_forKAFKA\
         .selectExpr("CAST(key as STRING)","to_json(struct(*)) AS value")\
         .writeStream\
@@ -96,17 +95,11 @@ if __name__ == "__main__":
         .outputMode("append")\
         .option("checkpointLocation","/home/niels/Documents/Twitter_Sentiment/CheckpointData/rawData")\
         .start()
-
-
-    #df_avgResult_forKAFKA=windowedCounts.withColumn("key", lit(2))
-    
+    """
+    # Add a constant key to the data stream 
     df_avgResult_forKAFKA=windowedCounts.withColumn("key", lit(2))
-    """
-    df_avgResult_forKAFKA=windowedCounts.withColumn("key", lit(2))\
-        .withColumn("value", concat(lit("{'window': '"), col("window").cast("string"), lit("', 'AVG_Sentiment: '"), col("AVG_Sentiment").cast("string"),\
-         lit("', 'count(1): '"), col("count(1)").cast("string"), lit("'}")))
-    """
-
+    
+    # Create a stream to Kafka to the Topic "SparkResult"
     dfForKafka_avgResult_transmitted=df_avgResult_forKAFKA\
         .selectExpr("CAST(key as STRING)", "to_json(struct(*)) AS value")\
         .writeStream\
@@ -118,6 +111,11 @@ if __name__ == "__main__":
         .option("checkpointLocation","/home/niels/Documents/Twitter_Sentiment/CheckpointData")\
         .start()
     
+    # uncomment if you want to see the raw data inclusive sentiment
+    """
     dfForKafka_rawData_transmitted.awaitTermination()
-    query_date.awaitTermination()
+    """
+    #Await termination for console output 
+    query_windowedCounts.awaitTermination()
+    #Await termination for Kafka Stream 
     dfForKafka_avgResult_transmitted.awaitTermination()
