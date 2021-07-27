@@ -6,3 +6,5 @@ The goal of this project is to visualize a calculated sentiment-index of tweets 
 
 
 ## Architecture
+The architecture is depicted in the following graph: 
+(https://github.com/silenNH/Twitter_Sentiment_Analysis/tree/master/pics/Twitter_Sentiment_Analysis_Architecture.png)
