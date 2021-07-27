@@ -1,4 +1,4 @@
-import libraries
+# import libraries
 import tweepy
 from tweepy import OAuthHandler
 from tweepy import Stream
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 	else:
 		word="Bitcoin"
 		print(word)
-	# Get auhentification to log into the Twitter API from config file
+	# Get auhentification to log into the Twitter API from the config files
 	consumer_key = config['AUTH']['consumer_key']
 	consumer_secret =config['AUTH']['consumer_secret']
 	access_token = config['AUTH']['access_token']
