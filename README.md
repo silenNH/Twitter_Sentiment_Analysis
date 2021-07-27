@@ -96,7 +96,15 @@ json_data = json.loads(data)
 ```
 
 The TweetProducer runs in a normal python container as a microservice. The image is build in during the docker-compose process 
+If the TweetProducer is working correctly it produces logs entries with the text of streamed tweets. The logs can be viewed as follows: 
 
+```bash
+sudo docker logs tweet-producer
+```
+It should look like: 
+```bash
+XXXXxXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
 
 ## Kafk Zookeeper & Broker
 The Kafka Zookeeper and Broker are the backbone of this big data application. Both application are running in a separated container. 
@@ -104,7 +112,37 @@ Kafka Broker works as a publish subscriber system. Data can be ingested to a spe
 
 
 ## Spark Structures Streaming 
-Sark is a 
+Sark is a big data application for batch as well as stream processing. In our case we use Spark to process the stream of data: 
+* Add for each Tweet a Sentiment Score with a user defined function and the python library Afinn 
+
+* Calculate the Sentiment index as an average value in a 1 minute window each 20 Seconds. 
+
+* The sentiment-index is ingested back again to the Kafka topic "SparkResult" 
+
+To check wheter the pplication runs smoothly, check the following: 
+
+```bash
+sudo docker logs spark
+```
+The output should look like 
+
+```bash
+
+```
+The spark application runs in a own container 
+
+## KSQLDB-Server, KSQL-CLI, Kafka Schema-Registry
+
+KSQLDB-Server is used to serialize the data ingested from spark in sentiment
+
+
+## Kafka Connect
+
+
+
+## Network 
+
+All container are connected via a created network called "niels"
 
 
 ## Limitations: 
