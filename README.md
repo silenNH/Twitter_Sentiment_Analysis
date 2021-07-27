@@ -49,10 +49,7 @@ sudo docker-compose up
 ```
 * And wait up to 5 Minutes
 
-* Open a web browser and enter localhost:3000
-
-* A Grafana window will open enter as Username admin and as Password admin. 
-[Picture]
+* Open a web browser and enter localhoXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 * Choose a new Password in the following page 
 
@@ -133,11 +130,77 @@ The spark application runs in a own container
 
 ## KSQLDB-Server, KSQL-CLI, Kafka Schema-Registry
 
-KSQLDB-Server is used to serialize the data ingested from spark in sentiment
+IN order to save the time series data (the from Spark processed Sentiment-Index) to the database InfluxDB the data needs to be serialized to a AVRO-Format with a KSQLDB-Server. The KSQL-CLI is used to pass a script to the KSQLDB-Server in order to create a Stream to serialice the data in Spark Result. The commands to create a Stream reading from the Topic SparkResult, serializing the data to AVRO-Format and ingesting the serialized data back again into the a new topic called SentimentResult are the following: 
+
+```bash
+CREATE STREAM To_INFLUX (UNIX_TIMESTAMP bigint, AVG_SENTIMENT DOUBLE) WITH (KAFKA_TOPIC='SparkResult', VALUE_FORMAT='JSON');
+CREATE STREAM TO_INFLUX_AVRO WITH (VALUE_FORMAT='AVRO', KAFKA_TOPIC='SentimentResult') AS SELECT * FROM To_INFLUX;
+```
+To check whether the KSQLDB Stream is created: 
+
+```bash
+sudo docker logs ksqldb-server
+```
+If the container are created newly and no data is saved locally the output schoud look like: 
+```bash
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+If the container already exists: 
+```bash
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+The KSQLDB-Server can create a Kaka-Connector to the InfluxDb as well 
+
+Check whether the connector is active by: 
+```bash
+sudo docker exec -it ksqldb-server ksql
+
+SHOW CONNECTORS;
+```
+
+The Output should look like: 
+```bash
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+ksqldb-server as well as ksql-cli runs in seperated containers. 
 
 
-## Kafka Connect
+The Kafka schema registry saves the data format of data stored in Kafka Topics if serilized like the topic SparkResult. The schema registry passes the information to Kafka-Connect when ingesting data to the InfluxDB sink.
 
+## Kafka-Connect
+Kafka-Connect connects the Kafka topic Sentiment Result to the InfluxDB Database. 
+
+The connector needs to be installed befor running. The installation is spcified in the docker-compose file 
+```bash
+kafka-connect: 
+    .......
+    command: bash -c "
+                confluent-hub install --no-prompt confluentinc/kafka-connect-influxdb:latest
+```
+To check whether the connector exists, enter in the terminal the folloing REST API command: 
+```bash
+curl -s localhost:8083/connector-plugins|jq '.[].class'
+```
+The Result should look like: 
+
+XXXXXXXXXXXXXXXXXXXXXXXXXx
+
+To check whether the Connector works fine  pass the folloing REST API command in the terminal
+```bash
+curl -s "http://localhost:8083/connectors?expand=info&expand=status" | \
+       jq '. | to_entries[] | [ .value.info.type, .key, .value.status.connector.state,.value.status.tasks[].state,.value.info.config."connector.class"]|join(":|:")' | \
+       column -s : -t| sed 's/\"//g'| sort
+```
+
+The Result should look like: 
+
+XXXXXXXXXXXXXXXXXXXXXXXXXx 
+
+
+## InfluxDB
+InfluxDB is a 
 
 
 ## Network 
@@ -152,8 +215,14 @@ All container are connected via a created network called "niels"
 * Kafka, Spark and InfluxDB are not secured with SSL in this project. Deployment in production required installation of security protocols like SSL. 
 
 
+## Lessons Learned
+* Use Git Version Control from the very beginning 
+* Pay attention to the format of the data stream from the source, the errors are mostly likely to occur in the end and t solve them costs a lot of time (like serialize the data stream with ksqldb to be able to ingest the data into the InfluxDB sink)
+* The next time I would use the Twitter Source Connector from JCustenborder [here](https://github.com/jcustenborder/kafka-connect-twitter "GITHUB") 
+
 ## Library: 
 * Bloomenthal, A., 2021, What Determines the Price of 1 Bitcoin?, https://www.investopedia.com/tech/what-determines-value-1-bitcoin/ last access 27.07.2021 at 13:13
 * Kumar, A., Garg, G., 2019, Sentiment analysis of multimodal twitter data, Multimedia Tools and Applications (2019) 78:24103-24119, https://link.springer.com/article/10.1007/s11042-019-7390-1 last access 27.07.2021 at 13:30 
 * Erhard, L. (2021), Zitate von Ludwig Erhard, https://www.zitate.eu/autor/ludwig-erhard-zitate/191304 last access 27.07.2021 at 16:47
 * Nielsen, F. n.a., A new ANEW: Evaluation of a word list for sentiment analysis in microblogs, DTU Informatics, Technical University of Denmark, Lyngby, Denmark
+* Blogs from Robin Moffat [here](https://rmoff.net/)
