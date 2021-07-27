@@ -17,12 +17,19 @@ The architecture is depicted in the following graph:
 * Ubunto Environment (if not install Virtual Box with Ubuntu, look [here](https://www.heise.de/tipps-tricks/Ubuntu-in-VirtualBox-nutzen-so-klappt-s-4203333.html "Heise"))
 * 10 GB RAM available
 * Git is installed (if not, look [here]) 
+* Twitter account and access token (if not look [here])
 
 
 ## Getting Starting
 First step is to clone the Repository
+
 Create a new directory and enter in the a Terminal: 
+
+```bash
 git clone "<path to this directory>" 
+```
+
+
 
 
 ## Library: 
