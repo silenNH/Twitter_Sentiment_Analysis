@@ -20,7 +20,7 @@ The architecture is depicted in the following graph:
 * Twitter account and access token (if not look [here](https://developer.twitter.com/ja/docs/basics/authentication/guides/access-tokens "TWITTER"))
 
 
-## Run the application
+# Run the application
 First step is to clone the Repository
 
 Create a new directory and enter in the a Terminal: 
