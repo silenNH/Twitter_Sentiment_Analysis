@@ -203,6 +203,8 @@ XXXXXXXXXXXXXXXXXXXXXXXXXx
 InfluxDB is a 
 
 
+## Grafana
+
 ## Network 
 
 All container are connected via a created network called "niels"
