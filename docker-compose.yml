@@ -168,8 +168,8 @@ services:
                         sleep 5 
                     done 
                     echo -e "\n Kafka-Connect is online 🙌🙌\n"
-                    echo -e "\n\n -> Wait another 120 Seconds to be sure that the topic SparkResult is created in Kafka :/"        
-                    sleep 120         
+                    echo -e "\n\n -> Wait another 70 Seconds to be sure that the topic SparkResult is created in Kafka :/"        
+                    sleep 70         
                     echo -e "\n\n-> Running KSQL commands\n"                    
                     cat /data/scripts/ksql_script.ksql | ksql http://ksqldb-server:8088
                     echo -e "\n\n-> Sleeping…\n"
