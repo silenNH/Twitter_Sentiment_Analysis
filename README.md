@@ -16,8 +16,8 @@ The architecture is depicted in the following graph:
 * Docker-Compose is installed (if not look [here](https://docs.docker.com/compose/install/ "Docker Homepage))
 * Ubunto Environment (if not install Virtual Box with Ubuntu, look [here](https://www.heise.de/tipps-tricks/Ubuntu-in-VirtualBox-nutzen-so-klappt-s-4203333.html "Heise"))
 * 10 GB RAM available
-* Git is installed (if not, look [here]) 
-* Twitter account and access token (if not look [here])
+* Git is installed (if not, look [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git "GIT")) 
+* Twitter account and access token (if not look [here](https://developer.twitter.com/ja/docs/basics/authentication/guides/access-tokens "TWITTER"))
 
 
 ## Getting Starting
@@ -26,13 +26,48 @@ First step is to clone the Repository
 Create a new directory and enter in the a Terminal: 
 
 ```bash
-git clone "<path to this directory>" 
+git clone "<path to this repository>" 
+```
+Configure the TweetProducer config.ini file: 
+* Enter our Twitter Credentials here: 
+```bash
+[AUTH]
+consumer_key=
+consumer_secret=
+access_token=
+access_secret=
+```
+* Specify the buzz word for searching Tweets. In our case Bitcoin: 
+```bash 
+[TOPIC]
+topic=Bitcoin
 ```
 
+Start the applications with the following commands: 
+```bash 
+sudo docker-compose up
+```
+* And wait up to 5 Minutes
+
+* Open a web browser and enter localhost:3000
+
+* A Grafana window will open enter as Username admin and as Password admin. 
+[Picture]
+
+* Choose a new Password in the following page 
+
+* If everythings runs smoothly the datasource and the dashboard are already provisioned and you see following screen: 
+
+* Click on the lower left coner at the Dashboard Sentiment Analysis to get to the near real time sentiment analysis: 
+[picture]
 
 
+# Step by Step Explination
 
-## Library: 
+## TweetProducer
+
+
+Library: 
 * Bloomenthal, A., 2021, What Determines the Price of 1 Bitcoin?, https://www.investopedia.com/tech/what-determines-value-1-bitcoin/ last access 27.07.2021 at 13:13
 * Kumar, A., Garg, G., 2019, Sentiment analysis of multimodal twitter data, Multimedia Tools and Applications (2019) 78:24103-24119, https://link.springer.com/article/10.1007/s11042-019-7390-1 last access 27.07.2021 at 13:30 
 * Erhard, L. (2021), Zitate von Ludwig Erhard, https://www.zitate.eu/autor/ludwig-erhard-zitate/191304 last access 27.07.2021 at 16:47
