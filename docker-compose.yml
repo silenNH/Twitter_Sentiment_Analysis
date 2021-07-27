@@ -1,0 +1,209 @@
+version: '3.5'
+
+networks: 
+    niels:
+        name: niels
+services: 
+    zookeeper:
+        image: confluentinc/cp-zookeeper
+        container_name: zookeeper
+        networks: 
+            - niels
+
+        environment: 
+            ZOOKEEPER_CLIENT_PORT: 2181
+ 
+    broker:
+        image: confluentinc/cp-kafka
+        container_name: broker
+        networks: 
+            - niels
+        ports: 
+            - "19092:19092"
+        depends_on: 
+            - zookeeper
+
+        environment: 
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,CONNECTIONS_FROM_HOST://localhost:19092
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1 #If distributed at least 3  --> Necessary otherwise ksqldb stream would not work
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1 # IF distributed at least 2 -->x Necessary otherwise ksqldb stream would not work
+        
+    
+    schema-registry:
+        image: confluentinc/cp-schema-registry:6.0.1
+        container_name: schema-registry
+        restart: always
+        networks: 
+            - niels
+        ports:
+            - "8081:8081"
+        depends_on: 
+            - broker
+            - zookeeper
+        environment: 
+            SCHEMA_REGISTRY_HOST_NAME: schema-registry
+            SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:9092
+            SCHEMA_REGISTRY_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1 #If distributed at least 3  --> Necessary otherwise ksqldb stream would not work
+            SCHEMA_REGISTRY_TRANSACTION_STATE_LOG_MIN_ISR: 1 # IF distributed at least 2 -->x Necessary otherwise ksqldb stream would not work
+
+    kafka-connect:
+        image: confluentinc/cp-kafka-connect-base:6.0.1
+        container_name: kafka-connect
+        networks: 
+            - niels
+        depends_on: 
+            - broker
+            - schema-registry
+        ports: 
+            - "8083:8083"
+        environment: 
+            CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
+            CONNECT_REST_PORT: 8083
+            CONNECT_GROUP_ID: kafka-connect
+            CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+            CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+            CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+            CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+            CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+            CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081'
+            CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
+            CONNECT_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN: "[%d] %p %X{connector.context}%m (%c:%L)%n"
+            CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+            CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+            CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+            CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+
+        volumes: 
+            - "./data:/data"
+        
+        command: bash -c "
+            confluent-hub install --no-prompt confluentinc/kafka-connect-elasticsearch:latest &&
+            confluent-hub install --no-prompt confluentinc/kafka-connect-influxdb:latest &&
+            /etc/confluent/docker/run &&
+            sleep infinity"
+
+
+    tweet-producer:
+        build: './TweetProducer'
+        restart: always
+        container_name: tweet-producer
+        depends_on: 
+            - broker
+        networks: 
+            - niels
+        entrypoint: 
+            - /bin/bash
+            - -c
+            - |
+                echo "-->Kafka needs time to start.....Container crashes if kafka-broker is not available and will be restarted 😴"  
+                sleep 5
+                python /TweetProducer.py
+
+    spark: 
+        image: bitnami/spark
+        user: root
+        container_name: spark
+        depends_on: 
+            - broker 
+        networks: 
+            - niels 
+        environment: 
+            - Spark_Mode=master
+        volumes: 
+            - "./PySpark/PySparkSentiment.py:/opt/bitnami/spark/work/KafkaConsumerOldV10.py"
+        command: bash -c "
+                    pip install afinn && 
+                    pip install pytz && 
+                    pip install datetime &&
+                    bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 work/KafkaConsumerOldV10.py"
+    
+    ksqldb-server:
+        image: confluentinc/cp-ksql-server:latest
+        hostname: ksqldb-server
+        container_name: ksqldb-server
+        networks: 
+            - niels
+        depends_on:
+            - broker
+            - kafka-connect
+        ports:
+            - "8088:8088"
+        environment:
+            KSQL_LISTENERS: http://0.0.0.0:8088
+            KSQL_BOOTSTRAP_SERVERS: "broker:9092"
+            KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+            KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+            KSQL_KSQL_CONNECT_URL: http://kafka-connect:8083
+            KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+
+    ksql-cli:    
+        image: confluentinc/cp-ksql-cli:latest
+        container_name: ksql-cli
+        networks: 
+            - niels
+        depends_on:
+            - ksqldb-server
+        volumes:
+            - ./scripts/ksql:/data/scripts/
+        entrypoint: 
+            - /bin/bash
+            - -c
+            - |
+                    echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"
+                    while [ $$(curl -s -o /dev/null -w %{http_code} http://ksqldb-server:8088/) -eq 000 ]
+                    do 
+                      echo -e $$(date) "KSQL Server HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://ksqldb-server:8088/) " (waiting for 200)"
+                      sleep 5
+                    done  
+                    echo -e "\n KSQL-Server is online🙌🙌"
+                    echo -e "\n\n⏳ Waiting for Kafka-Connect to be available before launching CLI\n"
+                    while [ $$(curl -s -o /dev/null -w %{http_code} http://kafka-connect:8083/connectors) -eq 000 ] 
+                    do 
+                        echo -e $$(date) " Kafka Connect listener HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://kafka-connect:8083/connectors) " (waiting for 200)"
+                        sleep 5 
+                    done 
+                    echo -e "\n Kafka-Connect is online 🙌🙌\n"
+                    echo -e "\n\n -> Wait another 120 Seconds to be sure that the topic SparkResult is created in Kafka :/"        
+                    sleep 120         
+                    echo -e "\n\n-> Running KSQL commands\n"                    
+                    cat /data/scripts/ksql_script.ksql | ksql http://ksqldb-server:8088
+                    echo -e "\n\n-> Sleeping…\n"
+                    sleep infinity
+
+    grafana: 
+        build: './grafana'
+        container_name: grafana
+        restart: always
+        ports: 
+            - 3000:3000
+        networks: 
+            - niels
+        depends_on: 
+            - influxdb
+        
+
+    influxdb:
+        image: influxdb:1.7.9
+        user: root
+        container_name: influxdb
+        networks: 
+            - niels
+        ports:
+          - 8086:8086
+        environment: 
+            - INFLUXDB_USER=NH
+            - INFLUXDB_USER_PASSWORD=CHANGEME
+
+    chronograf:
+        image: chronograf:1.7
+        user: root
+        container_name: chronograf
+        networks: 
+            - niels
+        ports: 
+          - 8888:8888

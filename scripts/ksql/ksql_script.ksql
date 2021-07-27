@@ -1,0 +1,7 @@
+
+CREATE STREAM To_INFLUX (UNIX_TIMESTAMP bigint, AVG_SENTIMENT DOUBLE) WITH (KAFKA_TOPIC='SparkResult', VALUE_FORMAT='JSON');
+CREATE STREAM TO_INFLUX_AVRO WITH (VALUE_FORMAT='AVRO', KAFKA_TOPIC='SentimentResult') AS SELECT * FROM To_INFLUX;
+
+CREATE SINK CONNECTOR SINK_INFLUX_EventTime WITH('connector.class'='io.confluent.influxdb.InfluxDBSinkConnector','tasks.max'='1','topics'='SentimentResult','influxdb.url'='http://influxdb:8086','influxdb.db'='influxSentiment','measurement.name.format'='${topic}','value.converter'='io.confluent.connect.avro.AvroConverter','value.converter.schema.registry.url'='http://schema-registry:8081','schema.ignore'='false','event.time.fieldname'='UNIX_TIMESTAMP','influxdb.timeunit'='SECONDS');
+
+SHOW CONNECTORS;

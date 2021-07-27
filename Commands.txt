@@ -1,0 +1,211 @@
+Waiting till Kafka Connectstarts listening on localhost (see: https://github.com/confluentinc/demo-scene/blob/master/kafka-connect-zero-to-hero/demo_zero-to-hero-with-kafka-connect.adoc)
+
+
+bash -c ' \
+echo -e "\n\n=============\nWaiting for Kafka Connect to start listening on localhost ⏳\n=============\n"
+while [ $(curl -s -o /dev/null -w %{http_code} http://localhost:8083/connectors) -ne 200 ] ; do
+  echo -e "\t" $(date) " Kafka Connect listener HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://localhost:8083/connectors) " (waiting for 200)"
+  sleep 5
+done
+echo -e $(date) "\n\n--------------\n\o/ Kafka Connect is ready! Listener HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://localhost:8083/connectors) "\n--------------\n"
+'
+
+
+Get List of all connectors: 
+curl -s localhost:8083/connector-plugins|jq '.[].class'
+
+Get Status of the Connector: 
+curl -s "http://localhost:8083/connectors?expand=info&expand=status" | \
+       jq '. | to_entries[] | [ .value.info.type, .key, .value.status.connector.state,.value.status.tasks[].state,.value.info.config."connector.class"]|join(":|:")' | \
+       column -s : -t| sed 's/\"//g'| sort
+
+
+Configure ElasticSearch Connector 
+curl -i -X PUT -H  "Content-Type:application/json" \
+    http://localhost:8083/connectors/sink-elastic-SparkrawData_00/config \
+    -d '{
+        "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+        "topics": "SentimentResult",
+        "connection.url": "http://elasticsearch:9200",
+        "type.name": "type.name=kafkaconnect",
+        "key.ignore": "true",
+        "schema.ignore": "true"
+    }'
+
+
+
+    Enter ElasticSearch: 
+
+    sudo docker exec -it elasticsearch bash
+    cd bin
+    elasticsearch-sql-cli
+
+
+
+
+    KSQLDB: Create STREAM for AVRO Conversion
+    CREATE STREAM TESTDATA_INFLUX (UNIX_TIMESTAMP bigint, AVG_SENTIMENT DOUBLE) WITH (KAFKA_TOPIC='SparkResult', VALUE_FORMAT='JSON');
+    CREATE STREAM TESTDATA_INFLUX_AVRO WITH (VALUE_FORMAT='AVRO', KAFKA_TOPIC='SentimentResult') AS SELECT * FROM TESTDATA_INFLUX;
+
+    ksql `CREATE STREAM TESTDATA_INFLUX (UNIX_TIMESTAMP bigint, AVG_SENTIMENT DOUBLE) WITH (KAFKA_TOPIC='SparkResult', VALUE_FORMAT='JSON');`
+
+Drop Stream: 
+DROP STREAM TESTDATA_INFLUX_AVRO; 
+
+Configure InfluxDB Connector 
+    curl -i -X PUT -H "Content-Type:application/json" \
+        http://localhost:8083/connectors/InfluxDBSentiment_V2/config \
+        -d '{
+            "connector.class"               : "io.confluent.influxdb.InfluxDBSinkConnector",
+            "value.converter"               : "io.confluent.connect.avro.AvroConverter",
+            "tasks.max"                     : "1",
+            "value.converter.schema.registry.url": "http://schema-registry:8081",
+            "value.converter.schemas.enable": "true",
+            "key.converter"                 : "org.apache.kafka.connect.storage.StringConverter",
+            "topics"                        : "SentimentResult",
+            "influxdb.url"                  : "http://influxdb:8086",
+            "influxdb.db"                   : "my-bucket",
+            "measurement.name.format"       : "${topic}",
+            "errors.tolerance"              : "all"
+        }'
+
+            "event.time.fieldname"          : "UNIX_TIMESTAMP",
+            
+            
+            
+            
+CREATE SINK CONNECTOR SINK_ELASTIC_TEST_03 WITH (
+  'connector.class'                     = 'io.confluent.connect.elasticsearch.ElasticsearchSinkConnector',
+  'connection.url'                      = 'http://elasticsearch:9200',
+  'value.converter'                     = 'io.confluent.connect.avro.AvroConverter',
+  'value.converter.schema.registry.url' = 'http://schema-registry:8081',
+  'topics'                              = 'SentimentResult',
+  'key.ignore'                          = 'true',
+  'schema.ignore'                       = 'false'
+);
+
+    
+  
+CREATE SINK CONNECTOR SINK_INFLUX_01 WITH(
+'connector.class'                       ='io.confluent.influxdb.InfluxDBSinkConnector',
+'tasks.max'                             ='1',
+'topics'                                ='SentimentResult',
+'influxdb.url'                          ='http://influxdb:8086',
+'influxdb.url'                          ='http://influxdb:8086',
+'influxdb.db'                           ='influxSentiment',
+'measurement.name.format'               ='${topic}',
+'value.converter'                       ='io.confluent.connect.avro.AvroConverter',
+'value.converter.schema.registry.url'   ='http://schema-registry:8081',
+'key.ignore'                            = 'true',
+'schema.ignore'                         = 'false'
+);
+
+mit event time
+'event.time.fieldname'                  = 'UNIX_TIMESTAMP',
+
+Mit String key
+CREATE SINK CONNECTOR SINK_INFLUX_03 WITH(
+'connector.class'                       ='io.confluent.influxdb.InfluxDBSinkConnector',
+'tasks.max'                             ='1',
+'topics'                                ='SentimentResult',
+'influxdb.url'                          ='http://influxdb:8086',
+'influxdb.db'                           ='influxSentiment3',
+'measurement.name.format'               ='${topic}',
+'value.converter'                       ='io.confluent.connect.avro.AvroConverter',
+'value.converter.schema.registry.url'   ='http://schema-registry:8081',
+'key.converter'                         ='org.apache.kafka.connect.storage.StringConverter',
+'schema.ignore'                         = 'false'
+);
+
+
+kafka-avro-console-consumer --bootstrap-server broker:9092 --topic avro_Test --property schema.registry.url=http://schema-registry:8081 --property value.schema='{ "type": "record", "name": "myrecord", "fields": [ { "name": "tags", "type": { "type": "map", "values": "string" } }, { "name": "stock", "type": "double" } ] }'
+
+
+sudo docker exec -i --property schema.registry.url=http://schema-registry:8081 --broker-list broker:9092 --topic avro_01 --property value.schema='{ "type": "record", "name": "myrecord", "fields": [ { "name": "tags", "type": { "type": "map", "values": "string" } }, { "name": "stock", "type": "double" } ] }' <<EOF
+{ "tags": { "host": "FOO", "product": "wibble" }, "stock": 500.0 } EOF
+
+
+AVROP TEST_ 
+CREATE SINK CONNECTOR SINK_INFLUX_04 WITH(
+'connector.class'                       ='io.confluent.influxdb.InfluxDBSinkConnector',
+'tasks.max'                             ='1',
+'topics'                                ='avro_Test',
+'influxdb.url'                          ='http://influxdb:8086',
+'influxdb.db'                           ='avro_Test',
+'measurement.name.format'               ='${topic}',
+'value.converter'                       ='io.confluent.connect.avro.AvroConverter',
+'value.converter.schema.registry.url'   ='http://schema-registry:8081',
+'key.ignore'                            = 'true',
+'schema.ignore'                         = 'false'
+);
+
+
+
+mit event time
+'event.time.fieldname'                  = 'UNIX_TIMESTAMP',
+
+Mit String key
+CREATE SINK CONNECTOR SINK_INFLUX_EventTime WITH(
+'connector.class'                       ='io.confluent.influxdb.InfluxDBSinkConnector',
+'tasks.max'                             ='1',
+'topics'                                ='SentimentResult',
+'influxdb.url'                          ='http://influxdb:8086',
+'influxdb.db'                           ='influxSentiment',
+'measurement.name.format'               ='${topic}',
+'value.converter'                       ='io.confluent.connect.avro.AvroConverter',
+'value.converter.schema.registry.url'   ='http://schema-registry:8081',
+'key.converter'                         ='org.apache.kafka.connect.storage.StringConverter',
+'schema.ignore'                         = 'false', 
+'event.time.fieldname'                  ='UNIX_TIMESTAMP'
+);
+
+
+
+Ohne String key + Time UNIT SECONDS
+CREATE SINK CONNECTOR SINK_INFLUX_EventTime WITH(
+'connector.class'                       ='io.confluent.influxdb.InfluxDBSinkConnector',
+'tasks.max'                             ='1',
+'topics'                                ='SentimentResult',
+'influxdb.url'                          ='http://influxdb:8086',
+'influxdb.db'                           ='influxSentiment6',
+'measurement.name.format'               ='${topic}',
+'value.converter'                       ='io.confluent.connect.avro.AvroConverter',
+'value.converter.schema.registry.url'   ='http://schema-registry:8081',
+'schema.ignore'                         = 'false', 
+'event.time.fieldname'                  ='UNIX_TIMESTAMP',
+'influxdb.timeunit'                     ='SECONDS'
+);
+
+CREATE SINK CONNECTOR SINK_INFLUX_04 WITH(
+'connector.class'                       ='io.confluent.influxdb.InfluxDBSinkConnector',
+'tasks.max'                             ='1',
+'topics'                                ='SentimentResult',
+'influxdb.url'                          ='http://influxdb:8086',
+'influxdb.password'                     ='CHANGEME',
+'influxdb.username'                     ='NH',
+'influxdb.db'                           ='influxSentiment3',
+'measurement.name.format'               ='${topic}',
+'value.converter'                       ='io.confluent.connect.avro.AvroConverter',
+'value.converter.schema.registry.url'   ='http://schema-registry:8081',
+'key.converter'                         ='org.apache.kafka.connect.storage.StringConverter',
+'schema.ignore'                         = 'false'
+);
+
+
+DROP a connector;:
+SINK_INFLUX_EventTime
+
+
+
+GRAFANA Provisioning: 
+
+Pfad 
+FALSCH: share --> grafana -->conf --> provisioning --> dashboards & datasources
+
+etc --> grafana --> provsioning 
+
+
+
+
+
+sudo docker rm ksqldb-server ksql-cli schema-registry spark broker zookeeper grafana influxdb chronograf

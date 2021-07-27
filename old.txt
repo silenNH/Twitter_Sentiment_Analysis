@@ -1,0 +1,178 @@
+  command: 
+            - bash 
+            - -c
+            - |
+                echo "Wait till Kafka and tweet-producer are running....."
+                sleep 60
+
+
+
+bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 work/KafkaConsumerOldV10.py
+kafka-console-consumer --bootstrap-server localhost:19092 --topic SparkrawData
+kafka-avro-console-consumer --bootstrap-server broker:9092 --topic SentimentResultV1 --property schema.registry.url=http://schema-registry:8081
+
+kafka-topics --zookeeper zookeeper:2181 --topic SparkResult --create --partitions 3 --replication-factor 1
+kafka-topics --zookeeper zookeeper:2181 --topic twitter --create --partitions 3 --replication-factor 1
+kafka-topics --zookeeper zookeeper:2181 --topic SparkrawData --create --partitions 3 --replication-factor 1
+
+
+command: 
+            - bash 
+            - -c
+            - | 
+                echo "Kafka needs time to start up....."
+                sleep 30
+                kafka-topics --zookeeper zookeeper:2181 --topic SparkResult --create --partitions 3
+                kafka-topics --zookeeper zookeeper:2181 --topic twitter --create --partitions 3 
+                kafka-topics --zookeeper zookeeper:2181 --topic SparkrawData --create --partitions 3 
+
+
+spark: JAR-File. 
+            - "./spark-sql-kafka-0-10_2.12-3.1.2.jar:/opt/bitnamie/spark/jars/spark-sql-kafka-0-10_2.12-3.1.2.jar"
+
+
+
+entrypoint: 
+            - bash 
+            - -c
+            - | 
+                echo "Kafka needs time to start....."
+                sleep 60
+                python /TweetReadProduceV4.py
+
+
+ tweet-producer:
+        image: tweet-producer
+        container_name: tweet-producer
+        depends_on: 
+            - broker
+        networks: 
+            - niels
+        entrypoint: bash -c "
+                        echo `Kafka needs time to start.....` && 
+                        sleep 60 &&
+                        python /TweetReadProduceV4.py"
+
+    spark: 
+        image: bitnami/spark
+        user: root
+        container_name: spark
+        depends_on: 
+            - broker 
+        networks: 
+            - niels 
+
+        environment: 
+            - Spark_Mode=master
+        volumes: 
+            - "./KafkaConsumerOldV10.py:/opt/bitnami/spark/work/KafkaConsumerOldV10.py"
+
+
+        command: bash -c "
+                    pip install afinn && 
+                    pip install pytz && 
+                    pip install datetime &&
+                    bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 work/KafkaConsumerOldV10.py"
+
+
+
+
+Kafka-Connect: 
+ command: bash -c "
+                    confluent-hub install --no-prompt confluentinc/kafka-connect-elasticsearch:10.0.1 &&
+                    confluent-hub install --no-prompt confluentinc/kafka-connect-influxdb:1.2.1 &&
+                    /etc/confluent/docker/run &&
+                    sleep infinity"
+
+CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+
+curl -i -X PUT -H  "Content-Type:application/json" \
+    http://localhost:8083/connectors/sink-elastic-orders-00/config \
+    -d '{
+        "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+        "topics": "mysql-debezium-asgard.demo.ORDERS",
+        "connection.url": "http://elasticsearch:9200",
+        "type.name": "type.name=kafkaconnect",
+        "key.ignore": "true",
+        "schema.ignore": "true"
+    }'
+
+curl -s -i -X PUT -H  "Content-Type:application/json" \
+    http://localhost:8083/connectors/sink-elastic-01/config \
+    -d '{
+            "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+            "connection.url": "http://elasticsearch7:9200",
+            "type.name": "_doc",
+            "topics": "SparkrawData",
+            "key.ignore": "true",
+            "schema.ignore": "true"
+            }'
+
+ISSUES: 
+
+1) Topics: 
+- No replication factor 
+- no number of partitions 
+
+Kafka & Spark:
+- just one node 
+- not distributed 
+
+Tweet producer: 
+- not distributed 
+- Anleitung import der TAR Datei 
+- Auf 120 sekunden schlafen setzten, da sonst der Download vpn Kafka Connect unterbrochen wird 
+
+
+kafka-avro-console-producer \
+--broker-list broker:9092 --topic test-elasticsearch-sink \
+--property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"f1","type":"string"}]}'
+
+
+{"f1": "value1"}
+{"f1": "value2"}
+{"f1": "value3"}
+
+connect-standalone etc/schema-registry/connect-avro-standalone.properties \
+etc/kafka-connect-elasticsearch/quickstart-elasticsearch.properties
+
+
+curl -XGET 'http://elasticsearch:9200/test-elasticsearch-sink/_search?pretty'
+
+
+curl -i -X PUT -H  "Content-Type:application/avro" \
+    http://localhost:8083/connectors/sink-elastic-test_00/config \
+    -d '{
+        "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+    "tasks.max": "1",
+    "topics": "test-elasticsearch-sink",
+    "key.ignore": "true",
+    "connection.url": "http://localhost:9200",
+    "type.name": "kafka-connect",
+    "name": "elasticsearch-sink"
+    }'
+
+{
+  "name": "elasticsearch-sink",
+  "config": {
+    "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+    "tasks.max": "1",
+    "topics": "test-elasticsearch-sink",
+    "key.ignore": "true",
+    "connection.url": "http://localhost:9200",
+    "type.name": "kafka-connect",
+    "name": "elasticsearch-sink"
+  },
+  "tasks": [],
+  "type": null
+}
+
+
+confluentinc/cp-ksql-server:5.2.1
+confluentinc/cp-ksql-cli:5.2.1
+
+               while [ $$(curl -s -o /dev/null -w %{http_code} http://kafka-connect:8083/connectors) -eq 000 ] 
+                do 
+                    echo -e $$(date) " Kafka Connect listener HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://kafka-connect:8083/connectors) " (waiting for 200)"
+                    sleep 5 
+                done 
