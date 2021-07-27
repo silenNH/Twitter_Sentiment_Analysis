@@ -20,7 +20,7 @@ The architecture is depicted in the following graph:
 * Twitter account and access token (if not look [here](https://developer.twitter.com/ja/docs/basics/authentication/guides/access-tokens "TWITTER"))
 
 
-## Getting Starting
+## Run the application
 First step is to clone the Repository
 
 Create a new directory and enter in the a Terminal: 
@@ -179,7 +179,7 @@ kafka-connect:
     command: bash -c "
                 confluent-hub install --no-prompt confluentinc/kafka-connect-influxdb:latest
 ```
-To check whether the connector exists, enter in the terminal the folloing REST API command: 
+To check whether the connector exists, enter in the terminal the following REST API command: 
 ```bash
 curl -s localhost:8083/connector-plugins|jq '.[].class'
 ```
@@ -217,7 +217,7 @@ All container are connected via a created network called "niels"
 
 ## Lessons Learned
 * Use Git Version Control from the very beginning 
-* Pay attention to the format of the data stream from the source, the errors are mostly likely to occur in the end and t solve them costs a lot of time (like serialize the data stream with ksqldb to be able to ingest the data into the InfluxDB sink)
+* Pay attention to the format of the data stream from the source, the errors are mostly likely to occur in the end and to solve them costs a lot of time (like serialize the data stream with ksqldb to be able to be ingested the data into the InfluxDB sink)
 * The next time I would use the Twitter Source Connector from JCustenborder [here](https://github.com/jcustenborder/kafka-connect-twitter "GITHUB") 
 
 ## Library: 
