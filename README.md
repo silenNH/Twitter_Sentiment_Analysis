@@ -1,4 +1,4 @@
-# Twitter_Sentiment_Analysis
+# Twitter Sentiment Analysis
 
 ## Introduction
 
@@ -10,3 +10,12 @@ The goal of this project is to visualize a calculated sentiment-index of tweets 
 ## Architecture
 The architecture is depicted in the following graph: 
 ![](pics/Twitter_Sentiment_Analysis_Architecture.png "Big-Data Architecture")
+
+
+## Prerequisits
+*Docker-Compose is installed (if not look [here](https://docs.docker.com/compose/install/ "Docker Homepage))
+*Ubunto Environment (if not install Virtual Box with Ubuntu, look [here]()https://www.heise.de/tipps-tricks/Ubuntu-in-VirtualBox-nutzen-so-klappt-s-4203333.html "Heise")
+*10 GB RAM available
+
+
+## Getting Starting
