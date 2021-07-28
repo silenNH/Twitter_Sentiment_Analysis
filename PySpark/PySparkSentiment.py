@@ -79,7 +79,7 @@ if __name__ == "__main__":
     #Create Console output 
     #query_windowedCounts=windowedCounts.writeStream.outputMode("complete").format("console").start()
         
-    
+
     # If the raw data is required inclusive sentiment uncomment the following code part as well as the lower command: dfForKafka_rawData_transmitted.awaitTermination()
     """
     # Add a constant key to the data stream 
