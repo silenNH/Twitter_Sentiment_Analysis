@@ -78,8 +78,8 @@ services:
             CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
             CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
 
-        volumes: 
-            - "./data:/data"
+        #volumes: 
+        #    - kafka-connect-data:/data
         
         command: bash -c "
             confluent-hub install --no-prompt confluentinc/kafka-connect-elasticsearch:latest &&
@@ -198,12 +198,8 @@ services:
         environment: 
             - INFLUXDB_USER=NH
             - INFLUXDB_USER_PASSWORD=CHANGEME
-
-    chronograf:
-        image: chronograf:1.7
-        user: root
-        container_name: chronograf
-        networks: 
-            - niels
-        ports: 
-          - 8888:8888
+        volumes:
+            - influxdb-data:/var/lib/influxdb
+volumes: 
+    influxdb-data:
+    #kafka-connect-data:

@@ -75,8 +75,9 @@ if __name__ == "__main__":
     # Add a UNIX_Timestamp for influxdb processing
     windowedCounts=windowedCounts.withColumn("UNIX_TIMESTAMP", unix_timestamp("end")).select("end","UNIX_TIMESTAMP","AVG_Sentiment")
 
+    # If a console output is wanted uncomment the following command as well as the command "" in the end of this file (not considered since outputmode is complete --> overflow after the system runs for a very long time??)
     #Create Console output 
-    query_windowedCounts=windowedCounts.writeStream.outputMode("complete").format("console").start()
+    #query_windowedCounts=windowedCounts.writeStream.outputMode("complete").format("console").start()
         
     
     # If the raw data is required inclusive sentiment uncomment the following code part as well as the lower command: dfForKafka_rawData_transmitted.awaitTermination()
@@ -116,6 +117,7 @@ if __name__ == "__main__":
     dfForKafka_rawData_transmitted.awaitTermination()
     """
     #Await termination for console output 
-    query_windowedCounts.awaitTermination()
+    # If a console output is wanted uncomment the following command as well as the command command to create query_windowedCounts above (not considered since outputmode is complete --> overflow after the system runs for a very long time??)
+    #query_windowedCounts.awaitTermination()
     #Await termination for Kafka Stream 
     dfForKafka_avgResult_transmitted.awaitTermination()
