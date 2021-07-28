@@ -78,8 +78,8 @@ services:
             CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
             CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
 
-        #volumes: 
-        #    - kafka-connect-data:/data
+        volumes: 
+            - kafka-connect-data:/data
         
         command: bash -c "
             confluent-hub install --no-prompt confluentinc/kafka-connect-elasticsearch:latest &&
@@ -202,4 +202,4 @@ services:
             - influxdb-data:/var/lib/influxdb
 volumes: 
     influxdb-data:
-    #kafka-connect-data:
+    kafka-connect-data:
