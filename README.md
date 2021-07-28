@@ -2,9 +2,11 @@
 
 ## Introduction
 
-Ludwig Erhard said the economy is to 50% psychology (Erhard, 2021). An excellent example of this quote is the valuation of Bitcoin. In contrast to companies, Bitcoin is not generating goods or services and the evaluation is mainly depended on the estimation how much value the other market participants attach to Bitcoin and thus how much demand emerges (Bloomenthal 2021). With the development and the widespread adaption of social media new possibilities arose to estimate the opinion of interested person groups on Bitcoin measured by a sentiment index. 
+Ludwig Erhard said the economy is to 50% psychology (Erhard, 2021). An excellent example of this quote is the valuation of Bitcoin. In contrast to Bitcoin, companies produce goods and services and generating cashflows. The value of the company can be assessed e.g. with the discounted cashflow model. Bitcoins on the other hand does not produce goods or services and neither cashflows. The valuation is mainly depended on the estimation on how much value the other market participants attach to Bitcoin and thus how much demand emerges (Bloomenthal 2021). With the development and the widespread adaption of social media new possibilities arose to estimate the opinion of interested person groups on Bitcoin measured by a sentiment index. This sentiment index can be a good indicator to assess the demand for Bitcoin.
 
-The goal of this project is to visualize a calculated sentiment-index of tweets containing the word Bitcoin in near-real-time. A microservice architecture is used (attached). The data is ingested via a python container to a Kafka Container from the Twitter-API (tweepy filters tweets with the word Bitocin, JSON operations select the necessary information from each tweet). The tweets are consumed and processed with Spark, a UDF calculates the sentiment of each tweet with Afinn  (Nielsen, n.a.). And an average sentiment-index is calculated as a sliding window of the last 3 minutes, generated every 20 seconds. This data stream is feed to Kafka again, KSQL serialize the Data to AVRO-Format and Kafka-Connect ingest the data to an InfluxDB sink. Grafana visualize the sentiment index as a time series from InfluxDB. Kafka, Spark, and InfluxDB can be run as distributed systems to ensure scalability and are proven as highly reliable (distributed systems, widespread adoption). The complete infrastructure to calculate and visualize the sentiment-index shall be started with one line of code by using docker-compose. The dashboards and data source connection of Grafana shall be provisioned automated. Docker-compose assures easy maintainability of the big data architecture.  Secure access to Twitter-API with OAuthHandler and access tokens. Kafka, Spark and Influxdb and Grafana can be set up with securities protocols like SSL to ensure the protection of the system. 
+
+The goal of this project is to visualize a calculated sentiment-index of tweets containing the word Bitcoin in near-real-time. A microservice architecture is used (see below). The data is ingested from the Twitter-API to a Kafka Container via a Python container running Tweepy and Pykafka (Tweepy filters tweets with the word Bitcoin, JSON operations select the necessary information from each tweet and Pykafka produces this data to a Kafka topic). The tweets are consumed and processed with Spark. For each tweet a sentiment score is calculated with a UDF and the python library Afinn  (Nielsen, n.a.) and an average sentiment-index is calculated as a sliding window of the last 1 minutes, generated every 20 seconds. This data stream is feed to a Kafka topic again, KSQL serialize the Data to AVRO-Format and Kafka-Connect ingest the data to an InfluxDB sink. Grafana visualize the sentiment index as a time series from InfluxDB. Kafka, Spark, and InfluxDB can be run as distributed systems to ensure scalability. Those components are proven as highly reliable (distributed systems, widespread adoption, fault tolerant e.g. offsets). The complete infrastructure to calculate and visualize the sentiment-index has to be started with one line of code by using docker-compose. The dashboards and data source connection of Grafana has to be provisioned automated. Docker-compose assures easy maintainability of the big data architecture.  Secure access to Twitter-API with OAuthHandler and access tokens are given. Kafka, Spark, Influxdb and Grafana can be set up with securities protocols like SSL to ensure the protection of the system. No GDPR violations are possible since the tweet are publicly available. The chosen governance policy is focusing on policies, standards, and strategies. Kafka Schema Registry, Kafka Connect and KSQLDB assuring a standardization of output data. The chosen approach enables further standardized extension with Kafka as the backbone of the big data application.
+
 
 
 ## Architecture
@@ -155,8 +157,16 @@ sudo docker logs ksql-cli
 ```
 If the container are created newly and no data is saved locally the output schoud look like: 
 ```bash
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
+ksql> ksql> CREATE STREAM To_INFLUX (UNIX_TIMESTAMP bigint, AVG_SENTIMENT DOUBLE) WITH (KAFKA_TOPIC='SparkResult', VALUE_FORMAT='JSON')
+ Message        
+
+ Stream created 
+
+ksql> CREATE STREAM TO_INFLUX_AVRO WITH (VALUE_FORMAT='AVRO', KAFKA_TOPIC='SentimentResult')
+ Message                                                                                          
+
+ Stream TO_INFLUX_AVRO created and running. Created by query with query ID: CSAS_TO_INFLUX_AVRO_2
+ ```
 
 If the container already exists: 
 ```bash
@@ -169,7 +179,7 @@ ksql> CREATE STREAM TO_INFLUX_AVRO WITH (VALUE_FORMAT='AVRO', KAFKA_TOPIC='Senti
 
 The KSQLDB-Server can create a Kaka-Connector to the InfluxDb as well 
 
-Check whether the connector is active by: 
+Check whether the connector is active: 
 
 ```bash
 sudo docker exec -it ksqldb-server ksql
