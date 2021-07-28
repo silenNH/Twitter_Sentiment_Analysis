@@ -16,7 +16,7 @@ The architecture is depicted in the following graph:
 
 ## Prerequisits
 * Docker-Compose is installed (if not, look [here](https://docs.docker.com/compose/install/ "Docker Homepage"))
-* Ubunto Environment (if not, install Virtual Box with Ubuntu, look [here](https://www.heise.de/tipps-tricks/Ubuntu-in-VirtualBox-nutzen-so-klappt-s-4203333.html "Heise"))
+* Ubuntu Environment (if not, install Virtual Box with Ubuntu, look [here](https://www.heise.de/tipps-tricks/Ubuntu-in-VirtualBox-nutzen-so-klappt-s-4203333.html "Heise"))
 * 10 GB RAM available
 * Git is installed (if not, look [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git "GIT")) 
 * Twitter account and access token (if not, look [here](https://developer.twitter.com/ja/docs/basics/authentication/guides/access-tokens "TWITTER"))
