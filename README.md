@@ -61,7 +61,7 @@ sudo docker-compose up
 * If everythings runs smoothly the datasource and the dashboard are already provisioned and you see following screen: 
 ![](pics/Grafana_WelcomePage.png "Grafana_WelcomePage")
 * To get to the provided Dashboard click on the left menu bar click "Dashboards" --> "Manage"
-![](pics/Dashboard_V1.PNG "Grafane Dashboard")
+![drawing](pics/Dashboard_V1.PNG "Grafane Dashboard")
 * The Dashboard schould look like: 
 ![](pics/Dashboard_V2.PNG "Grafane Dashboard")
 
