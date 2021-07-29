@@ -31,7 +31,7 @@ Create a new directory and enter in a Terminal:
 git clone "<path to this repository>" 
 ```
 Configure the TweetProducer config.ini in the folder ./TweetProducer file: 
-* Enter our Twitter Credentials here: 
+* Enter your Twitter Credentials here: 
 ```bash
 [AUTH]
 consumer_key=
