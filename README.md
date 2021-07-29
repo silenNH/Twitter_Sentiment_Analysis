@@ -64,6 +64,8 @@ sudo docker-compose up
 ![minipic](pics/Dashboard_V1.PNG "Grafane Dashboard")
 * Click on Sentiment-Analysis: 
 ![](pics/Dashboard_V2.PNG "Grafane Dashboard")
+* The Dashboard schould look like: 
+![](pics/Grafana_Dashboard.png "Grafane Dashboard")
 
 # Step by Step Explination
 
