@@ -62,7 +62,7 @@ sudo docker-compose up
 ![](pics/Grafana_WelcomePage.png "Grafana_WelcomePage")
 * To get to the provided Dashboard click on the left menu bar click "Dashboards" --> "Manage"
 ![minipic](pics/Dashboard_V1.PNG "Grafane Dashboard")
-* The Dashboard schould look like: 
+* Click on Sentiment-Analysis: 
 ![](pics/Dashboard_V2.PNG "Grafane Dashboard")
 
 # Step by Step Explination
