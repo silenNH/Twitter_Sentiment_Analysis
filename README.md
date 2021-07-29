@@ -23,9 +23,9 @@ The architecture is depicted in the following graph:
 
 
 # Run the application
-First step is to clone the Repository
+First step is to clone the repository
 
-Create a new directory and enter in the a Terminal: 
+Create a new directory and enter in a Terminal: 
 
 ```bash
 git clone "<path to this repository>" 
@@ -39,6 +39,8 @@ consumer_secret=
 access_token=
 access_secret=
 ```
+No quotation marks are needed.
+
 * Specify the buzz word for searching Tweets. In our case Bitcoin: 
 ```bash 
 [TOPIC]
@@ -52,16 +54,16 @@ sudo docker-compose up
 ```
 * And wait up to 5 Minutes (if images does not exist it may take a while ⏳......)
 
-* Open a web browser and enter localhost:3000 enter as Username "admin" and as Password "admin"
+* Open a web browser and enter localhost:3000 enter for Username "admin" and for Password "admin"
 
 * Choose a new Password in the following page 
 
 * If everythings runs smoothly the datasource and the dashboard are already provisioned and you see following screen: 
 ![](pics/Grafana_WelcomePage.png "Grafana_WelcomePage")
-* Click on the lower left coner at the Dashboard Sentiment Analysis to get to the near real time sentiment analysis: 
-![](pics/Grafana_Dashboard.png "Grafana_WelcomePage")
-
-
+* To get to the provided Dashboard click on the left menu bar click "Dashboards" --> "Manage"
+![](pics/Dashboard_V1.PNG "Grafane Dashboard")
+* The Dashboard schould look like: 
+![](pics/Dashboard_V2.PNG "Grafane Dashboard")
 
 # Step by Step Explination
 
